@@ -2144,32 +2144,7 @@ def call_page(name):
 @app.get("/call")
 def calls_page():
     return render_template("call.html", call_username=None)
-@app.get("/sw.js")
-def service_worker():
-    """Serve the root-scoped worker (lives next to app.py) so it can handle
-    offline app navigations. Served from root rather than /static so the
-    default scope covers the whole app, not just /static/."""
-    return send_from_directory(app.root_path, "sw.js", mimetype="application/javascript")
 
-
-@app.get("/manifest.json")
-def manifest():
-    """Serve manifest.json from the project root, alongside app.py."""
-    return send_from_directory(app.root_path, "manifest.json", mimetype="application/manifest+json")
-
-
-@app.get("/offline.html")
-def offline_page():
-    """Serve the offline fallback page from the project root (not /static)
-    so it lives next to sw.js/manifest.json and matches OFFLINE_URL in sw.js."""
-    return send_from_directory(app.root_path, "offline.html", mimetype="text/html")
-
-
-@app.get("/icons/<path:filename>")
-def pwa_icons(filename):
-    """Serve PWA icons from a root-level /icons folder (not /static/icons),
-    matching the paths used in manifest.json, sw.js, offline.html and base.html."""
-    return send_from_directory(os.path.join(app.root_path, "icons"), filename)
 
 
 @socketio.on("connect")
