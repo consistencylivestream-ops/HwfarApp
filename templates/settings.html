@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}HwFar — settings{% endblock %}
+{% block body %}
+<header class="topbar"><a class="brand" href="/chat"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 1-8 8 8.4 8.4 0 0 1-3.4-.7L4 20l1.2-4.1A8 8 0 1 1 20 11.5Z"/><path d="M9 8.2c.2 1.8 1.7 3.6 3.3 4.6 1.5 1 2.7 1.2 3.2.5l.6-.8-1.8-1.1-.8.8c-.7-.2-1.8-1.1-2.2-1.8l.6-.8-1.1-1.8-1 .4c-.6.2-.9-.1-.8 0Z"/></svg></span><span>HwFar</span></a><div class="spacer"></div><button class="icon-btn install-btn" onclick="handleInstallClick()" title="Install HwFar">⭳ Install app</button><a href="/chat">Back to chats</a><a href="/stories">Statuses</a></header>
+<main class="page">
+  <h1>Settings</h1><p class="page-sub">Make HwFar feel like yours. You can change your privacy choices whenever you want.</p>
+  {% if settings_section == "root" %}
+  <div class="card">
+    <a class="setting" href="/settings/account"><div><b>Account</b><small>Change your username or log out.</small></div><span>›</span></a>
+    <a class="setting" href="/settings/privacy"><div><b>Privacy</b><small>Choose who can see your online status, last seen, age, and gender.</small></div><span>›</span></a>
+    <a class="setting" href="/settings/blocked"><div><b>Blocked users</b><small>Manage the people you've blocked.</small></div><span>›</span></a>
+    <a class="setting" href="/settings/appearance"><div><b>Appearance</b><small>Theme and interface preferences.</small></div><span>›</span></a>
+    <a class="setting" href="/settings/notifications"><div><b>Notifications</b><small>Message alerts on this browser.</small></div><span>›</span></a>
+    <a class="setting" href="/settings/language"><div><b>Language</b><small>Choose the interface language.</small></div><span>›</span></a>
+    <a class="setting" href="/settings/about"><div><b>About &amp; share</b><small>Invite friends, rate HwFar, and see app stats.</small></div><span>›</span></a>
+  </div>
+  {% elif settings_section == "account" %}
+  <div class="card">
+    <h3>Profile photo</h3>
+    <div class="photo-picker">
+      <div class="photo-preview" id="avatar-preview">👤</div>
+      <label class="upload-label">Change photo<input type="file" id="avatar-upload" accept="image/*"></label>
+    </div>
+  </div>
+  <div class="card"><h3>Username</h3><div class="field"><input id="new-username" placeholder="New username" maxlength="24"><button class="btn" onclick="saveUsername()">Save</button></div></div>
+  <div class="card">
+    <h3>Recovery email <small id="email-status-badge" style="font-weight:400;color:var(--muted);font-size:12px"></small></h3>
+    <p class="page-sub" style="margin:0 0 14px">Add and verify an email so you can reset your password if you ever get locked out. Without a verified email there's no way to prove it's really you, so "forgot password" can't help.</p>
+    <div class="field"><input id="account-email" type="email" placeholder="you@example.com" autocomplete="email"></div>
+    <div class="field"><input id="email-password" type="password" placeholder="Current password, to confirm it's you" autocomplete="current-password"></div>
+    <div class="field">
+      <button class="btn" onclick="sendEmailCode()">Save / change email</button>
+      <button class="btn secondary" id="remove-email-btn" style="color:var(--accent)" onclick="removeEmail()" hidden>Remove email</button>
+    </div>
+    <div class="field" id="email-code-row" hidden><input id="email-code" placeholder="6-digit code" maxlength="6" inputmode="numeric"><button class="btn secondary" onclick="verifyEmailCode()">Verify</button></div>
+  </div>
+  <div class="card" id="google-account-card" hidden>
+    <h3>Google account</h3>
+    <p class="page-sub" style="margin:0 0 14px">Your account is linked to Google sign-in. You can unlink it — you'll still be able to log in with your HwFar username and password.</p>
+    <div class="field"><input id="google-unlink-password" type="password" placeholder="Current password, to confirm it's you" autocomplete="current-password"><button class="btn secondary" style="color:var(--accent)" onclick="unlinkGoogleAccount()">Unlink Google account</button></div>
+  </div>
+  <div class="card">
+    <h3>Change password</h3>
+    <div class="field"><input id="current-password" type="password" placeholder="Current password" autocomplete="current-password"></div>
+    <div class="field"><input id="new-password" type="password" placeholder="New password (min 6 characters)" autocomplete="new-password"><button class="btn" onclick="changePassword()">Update</button></div>
+  </div>
+  <div class="flash" id="settings-flash"></div>
+  {% elif settings_section == "privacy" %}
+  <div class="card">
+    <div class="setting"><div><b>Show online and last-seen status</b><small>People will only see this while you allow it.</small></div><button class="switch" id="online-switch" onclick="togglePrivacySetting('show_online')"><i></i></button></div>
+    <div class="setting"><div><b>Show my age</b><small>Your age stays hidden from your profile until you turn this on.</small></div><button class="switch" id="age-switch" onclick="togglePrivacySetting('show_age')"><i></i></button></div>
+    <div class="setting"><div><b>Show my gender</b><small>You can keep this private and still use HwFar normally.</small></div><button class="switch" id="gender-switch" onclick="togglePrivacySetting('show_gender')"><i></i></button></div>
+    <div class="setting"><div><b>Show last seen</b><small>Turning this off also hides everyone else's last seen from you.</small></div><button class="switch" id="lastseen-switch" onclick="togglePrivacySetting('show_last_seen')"><i></i></button></div>
+    <div class="setting"><div><b>Share status view receipts</b><small>Turning this off also hides who's viewed your own statuses.</small></div><button class="switch" id="statusviews-switch" onclick="togglePrivacySetting('share_status_views')"><i></i></button></div>
+     <div class="setting"><div><b>Show status likes and dislikes</b><small>Turn this off to hide reaction totals on statuses you post.</small></div><button class="switch" id="status-reactions-switch" onclick="togglePrivacySetting('show_status_reactions')"><i></i></button></div>
+    <div class="flash" id="settings-flash"></div>
+  </div>
+  {% elif settings_section == "blocked" %}
+  <div class="card" id="blocked-list"><div class="empty">Loading…</div></div>
+  {% elif settings_section == "appearance" %}
+   <div class="card">
+     <div class="setting"><div><b>Dark theme</b><small>Stored on this device.</small></div><button class="switch" id="theme-switch" onclick="toggleTheme()"><i></i></button></div>
+     <div class="setting"><div><b>Welcome motion</b><small>Friends and family animation on the sign-in and sign-up screen.</small></div><button class="switch" id="welcome-animation-switch" onclick="toggleLocalPreference('hwfar_welcome_animation','welcome-animation-switch')"><i></i></button></div>
+   </div>
+  {% elif settings_section == "notifications" %}
+  <div class="card">
+    <div class="setting"><div><b>Push notifications</b><small>Get alerts on this device even when HwFar is closed.</small></div><button class="switch" id="notification-switch" onclick="toggleNotifications()"><i></i></button></div>
+    <div class="setting notif-category-row"><div><b>Messages</b><small>New chat messages.</small></div><button class="switch notif-category-switch" id="notif-cat-messages" onclick="toggleNotificationCategory('messages')"><i></i></button></div>
+    <div class="setting notif-category-row"><div><b>Voice notes</b><small>When someone sends you a voice message.</small></div><button class="switch notif-category-switch" id="notif-cat-voice_notes" onclick="toggleNotificationCategory('voice_notes')"><i></i></button></div>
+    <div class="setting notif-category-row"><div><b>Calls</b><small>Incoming and missed audio/video calls.</small></div><button class="switch notif-category-switch" id="notif-cat-calls" onclick="toggleNotificationCategory('calls')"><i></i></button></div>
+    <div class="setting notif-category-row"><div><b>Status updates</b><small>When a contact posts a new status.</small></div><button class="switch notif-category-switch" id="notif-cat-status" onclick="toggleNotificationCategory('status')"><i></i></button></div>
+    <div class="setting"><div><b>Notification sound</b><small>Play a Samsung-style notification tone for new messages.</small></div><button class="switch" id="notification-sound-switch" onclick="toggleSoundPreference('hwfar_notification_sound','notification-sound-switch')"><i></i></button></div>
+    <div class="setting"><div><b>Call ringtone</b><small>Play a Samsung-style ringtone for incoming calls.</small></div><button class="switch" id="call-sound-switch" onclick="toggleSoundPreference('hwfar_call_sound','call-sound-switch')"><i></i></button></div>
+    <div class="flash" id="settings-flash"></div>
+  </div>
+  {% elif settings_section == "language" %}
+  <div class="card"><div class="pills"><button class="pill language-choice" data-language="en" onclick="setLanguage('en')">English</button><button class="pill language-choice" data-language="fr" onclick="setLanguage('fr')">Français</button></div><div class="flash" id="settings-flash"></div></div>
+  {% elif settings_section == "about" %}
+  <div class="card" style="text-align:center">
+    <div class="empty-logo" style="margin:0 auto 14px">◌</div>
+    <h3 style="margin:0 0 4px">HwFar</h3>
+    <p class="page-sub" id="about-installs" style="margin:0 0 18px">Loading stats…</p>
+    <div class="pills" style="justify-content:center;margin-bottom:8px">
+      <button class="icon-btn about-star" data-star="1" onclick="rateApp(1)" aria-label="Rate 1 star" style="font-size:26px">☆</button>
+      <button class="icon-btn about-star" data-star="2" onclick="rateApp(2)" aria-label="Rate 2 stars" style="font-size:26px">☆</button>
+      <button class="icon-btn about-star" data-star="3" onclick="rateApp(3)" aria-label="Rate 3 stars" style="font-size:26px">☆</button>
+      <button class="icon-btn about-star" data-star="4" onclick="rateApp(4)" aria-label="Rate 4 stars" style="font-size:26px">☆</button>
+      <button class="icon-btn about-star" data-star="5" onclick="rateApp(5)" aria-label="Rate 5 stars" style="font-size:26px">☆</button>
+    </div>
+    <p class="page-sub" id="about-rating" style="margin:0 0 20px"></p>
+    <div class="field" style="justify-content:center"><button class="btn" onclick="shareAppLink()">Invite friends</button></div>
+    <div class="field" style="justify-content:center"><button class="btn secondary" onclick="shareMyProfileLink()">Share my profile link</button></div>
+  </div>
+  {% endif %}
+</main>
+<nav class="mobile-nav" aria-label="Mobile navigation">
+  <a class="mobile-nav-item" href="/chat"><span>⌂</span><small>Chats</small></a>
+  <a class="mobile-nav-item" href="/discover"><span>◉</span><small>Discover</small></a>
+  <a class="mobile-nav-item" href="/stories"><span>◌</span><small>Status</small></a>
+   <a class="mobile-nav-item" href="/call"><span>☎</span><small>Calls</small></a>
+  <a class="mobile-nav-item" href="/new-chat"><span>＋</span><small>New chat</small></a>
+</nav>
+{% endblock %}
+{% block scripts %}<script>window.SETTINGS_SECTION={{ settings_section|tojson }};initSettingsPage();</script>{% endblock %}
