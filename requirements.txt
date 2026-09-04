@@ -1,6 +1,0 @@
-dflask
-flask-socketio
-pyjwt
-werkzeug
-eventlet
-psycopg2-binary
