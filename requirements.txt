@@ -4,3 +4,4 @@ pyjwt
 werkzeug
 eventlet
 pywebpush
+psycopg2-binary
