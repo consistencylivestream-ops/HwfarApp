@@ -56,6 +56,9 @@ except ImportError:
     psycopg2 = None
 
 app = Flask(__name__)
+from werkzeug.middleware.proxy_fix import ProxyFix
+
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "chatly-dev-secret-key-change-me-please")
 # IMPORTANT (Railway): a plain relative sqlite path lives on the container's
 # ephemeral filesystem, which is wiped on every redeploy/restart — that
