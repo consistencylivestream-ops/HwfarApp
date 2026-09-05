@@ -1,0 +1,6 @@
+flask
+flask-socketio
+pyjwt
+werkzeug
+eventlet
+firebase-admin
