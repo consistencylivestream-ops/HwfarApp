@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HwFar Admin</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 viewBox%3D%220 0 32 32%22%3E%3Crect width%3D%2232%22 height%3D%2232%22 rx%3D%2210%22 fill%3D%22%23ff2f68%22%2F%3E%3C%2Fsvg%3E">
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+  :root{--bg:#080708;--panel:#130f11;--panel2:#1d1518;--panel3:#251a1f;--line:#33242a;--text:#fff8fa;--muted:#a9959c;--accent:#ff2f68;--accent2:#ff5a82;--good:#57d39b;--warn:#f5b942;--shadow:0 24px 70px #000b}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font:14.5px Inter,system-ui,-apple-system,"Segoe UI",sans-serif;height:100%}
+  button,input,textarea,select{font:inherit}
+  button{cursor:pointer}
+  a{color:inherit}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+
+  /* ---- login gate ---- */
+  #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at 50% 0,#36101e 0,#080708 46%)}
+  .login-card{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:32px;box-shadow:var(--shadow)}
+  .login-brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+  .login-mark{width:42px;height:42px;border-radius:13px;background:var(--accent);display:grid;place-items:center;font-weight:900;color:#17070b;font-size:20px;box-shadow:0 8px 24px #ff2f6840}
+  .login-brand h1{font-size:19px;margin:0;letter-spacing:-.3px}
+  .login-brand small{color:var(--muted);display:block;margin-top:2px}
+  .field{margin:14px 0}
+  .field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px;font-weight:600}
+  .field input,.field select,.field textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;color:var(--text);outline:0}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+  .btn{border:0;border-radius:10px;padding:12px 18px;background:var(--accent);color:#17070b;font-weight:800;box-shadow:0 8px 20px #ff2f6822;width:100%}
+  .btn:hover{background:var(--accent2)}
+  .btn.secondary{background:var(--panel2);border:1px solid var(--line);color:var(--text);box-shadow:none;width:auto}
+  .btn.danger{background:#ff4d4d}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text);box-shadow:none;width:auto}
+  .btn.small{padding:7px 12px;font-size:12.5px;width:auto}
+  .err{color:var(--accent2);font-size:13px;min-height:18px;margin-top:6px}
+
+  /* ---- app shell ---- */
+  #app{display:none;min-height:100vh;grid-template-columns:230px 1fr;height:100vh}
+  #app.show{display:grid}
+  .sidebar{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .side-brand{display:flex;align-items:center;gap:10px;padding:20px 18px}
+  .side-brand .login-mark{width:32px;height:32px;font-size:15px;border-radius:9px}
+  .side-brand strong{font-size:15px;letter-spacing:-.2px}
+  nav{flex:1;padding:6px 10px;overflow-y:auto}
+  nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;color:var(--muted);padding:11px 12px;border-radius:10px;font-weight:600;font-size:13.5px;margin-bottom:2px}
+  nav button:hover{background:var(--panel2);color:var(--text)}
+  nav button.active{background:var(--accent);color:#17070b}
+  nav button .dot-badge{margin-left:auto;background:var(--accent2);color:#17070b;font-size:10.5px;font-weight:800;border-radius:20px;padding:1px 7px}
+  nav button.active .dot-badge{background:#17070b;color:var(--accent2)}
+  .side-foot{padding:14px 18px;border-top:1px solid var(--line)}
+  .side-foot button{width:100%}
+
+  .main{overflow-y:auto;min-height:0}
+  .topbar{position:sticky;top:0;background:var(--bg)e6;backdrop-filter:blur(6px);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:16px 26px;z-index:5}
+  .topbar h2{margin:0;font-size:19px;letter-spacing:-.3px}
+  .topbar .spacer{flex:1}
+  .bell-wrap{position:relative}
+  .bell-btn{background:var(--panel2);border:1px solid var(--line);border-radius:11px;width:40px;height:40px;display:grid;place-items:center;color:var(--text)}
+  .bell-btn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .bell-count{position:absolute;top:-5px;right:-5px;background:var(--accent);color:#17070b;font-size:10px;font-weight:800;border-radius:20px;min-width:17px;height:17px;display:grid;place-items:center;padding:0 4px}
+  .content{padding:22px 26px 60px}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:24px}
+  .stat-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+  .stat-card .num{font-size:26px;font-weight:800;letter-spacing:-.5px}
+  .stat-card .lbl{color:var(--muted);font-size:12.5px;margin-top:2px}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:20px}
+  .panel-head{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
+  .panel-head h3{margin:0;font-size:15px}
+  .panel-head .spacer{flex:1}
+  .panel-body{padding:4px 0}
+  .pill-tabs{display:flex;gap:6px}
+  .pill-tab{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:12.5px;color:var(--muted);font-weight:700}
+  .pill-tab.active{background:var(--accent);color:#17070b;border-color:var(--accent)}
+
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;padding:10px 18px;border-bottom:1px solid var(--line)}
+  td{padding:12px 18px;border-bottom:1px solid var(--line);vertical-align:middle;font-size:13.5px}
+  tr:last-child td{border-bottom:0}
+  .badge{display:inline-block;font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:20px;background:var(--panel2);color:var(--muted)}
+  .badge.on{background:#57d39b30;color:var(--good)}
+  .badge.off{background:#4443}
+  .badge.danger{background:#ff4d4d30;color:#ff6b6b}
+  .badge.warn{background:#f5b94230;color:var(--warn)}
+  .row-actions{display:flex;gap:6px;flex-wrap:wrap}
+  .empty-row td{text-align:center;color:var(--muted);padding:34px}
+
+  .feed{max-height:70vh;overflow-y:auto;padding:6px 0}
+  .feed-item{padding:11px 18px;border-bottom:1px solid var(--line);font-size:13px;display:flex;gap:10px}
+  .feed-item .who{font-weight:800;flex:none}
+  .feed-item .txt{color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .feed-item .when{margin-left:auto;flex:none;color:var(--muted);font-size:11.5px}
+  .feed-item.report{background:#ff4d4d10}
+  .feed-item.banned{background:#ff2f6810}
+
+  .modal-backdrop{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .modal-backdrop.open{display:flex}
+  .modal{width:100%;max-width:560px;max-height:82vh;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+  .modal-head{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
+  .modal-head h3{margin:0;font-size:15px}
+  .modal-close{margin-left:auto;background:none;border:0;color:var(--muted);font-size:20px}
+  .modal-body{padding:14px 18px;overflow-y:auto}
+  .convo-msg{max-width:78%;margin:5px 0;padding:8px 11px;border-radius:10px;background:var(--panel2);font-size:13px;line-height:1.4}
+  .convo-msg.mine{margin-left:auto;background:var(--mine,#5a1830)}
+  .convo-msg .meta{font-size:10.5px;color:var(--muted);margin-top:3px}
+  .convo-msg.gone{opacity:.55;font-style:italic}
+
+  textarea{min-height:96px;resize:vertical}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);padding:11px 18px;border-radius:12px;box-shadow:var(--shadow);font-size:13px;z-index:99;opacity:0;pointer-events:none;transition:.2s}
+  .toast.show{opacity:1}
+  @media(max-width:820px){#app.show{grid-template-columns:1fr}.sidebar{position:fixed;bottom:0;left:0;right:0;top:auto;flex-direction:row;border:0;border-top:1px solid var(--line);z-index:10}.side-brand,.side-foot{display:none}nav{display:flex;padding:6px;overflow-x:auto}nav button{flex-direction:column;font-size:10px;gap:3px;white-space:nowrap;padding:8px 10px}nav button .dot-badge{margin-left:0}.main{padding-bottom:70px}}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-mark">H</div>
+      <div><h1>HwFar Admin</h1><small>Moderation &amp; operations panel</small></div>
+    </div>
+    <div class="field"><label>Admin username</label><input id="login-user" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input id="login-pass" type="password" autocomplete="current-password"></div>
+    <button class="btn" onclick="doLogin()">Log in</button>
+    <div class="err" id="login-err"></div>
+  </div>
+</div>
+
+<div id="app">
+  <aside class="sidebar">
+    <div class="side-brand"><div class="login-mark">H</div><strong>HwFar Admin</strong></div>
+    <nav>
+      <button data-tab="overview" data-label="Overview" class="active">📊 <span>Overview</span></button>
+      <button data-tab="reports" data-label="Reports">🚩 <span>Reports</span><span class="dot-badge" id="nav-reports-badge" hidden>0</span></button>
+      <button data-tab="users" data-label="Users">👤 <span>Users</span></button>
+      <button data-tab="live" data-label="Live feed">📡 <span>Live feed</span></button>
+      <button data-tab="notify" data-label="Notify">💬 <span>Notify</span></button>
+      <button data-tab="push" data-label="Push">🔔 <span>Push</span></button>
+      <button data-tab="activity" data-label="Activity log">🗂️ <span>Activity log</span></button>
+    </nav>
+    <div class="side-foot"><button class="btn secondary" onclick="logout()">Log out</button></div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h2 id="page-title">Overview</h2>
+      <div class="spacer"></div>
+      <div class="bell-wrap">
+        <button class="bell-btn" onclick="switchTab('reports')" title="Open reports">
+          <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        </button>
+        <span class="bell-count" id="bell-count" hidden>0</span>
+      </div>
+    </div>
+    <div class="content">
+
+      <section id="tab-overview">
+        <div class="cards" id="overview-cards"></div>
+        <div class="panel">
+          <div class="panel-head"><h3>Recent activity</h3></div>
+          <div class="panel-body"><table><tbody id="overview-activity"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="tab-reports" hidden>
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Reports</h3>
+            <div class="spacer"></div>
+            <div class="pill-tabs" id="report-status-tabs">
+              <button class="pill-tab active" data-status="open">Open</button>
+              <button class="pill-tab" data-status="all">All</button>
+              <button class="pill-tab" data-status="dismissed">Dismissed</button>
+              <button class="pill-tab" data-status="actioned">Actioned</button>
+            </div>
+          </div>
+          <div class="panel-body" style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Reported</th><th>Reporter</th><th>Reason</th><th>Total reports</th><th>Status</th><th>When</th><th>Actions</th></tr></thead>
+              <tbody id="reports-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-users" hidden>
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Users</h3>
+            <div class="spacer"></div>
+            <input id="user-search" placeholder="Search username…" style="background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 12px;color:var(--text);outline:0;width:220px">
+          </div>
+          <div class="panel-body" style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Username</th><th>Status</th><th>Online</th><th>Reports</th><th>Warnings</th><th>Actions</th></tr></thead>
+              <tbody id="users-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-live" hidden>
+        <div class="panel">
+          <div class="panel-head"><h3>Live message feed</h3><div class="spacer"></div><span class="badge on" id="live-status">connecting…</span></div>
+          <div class="feed" id="live-feed"></div>
+        </div>
+      </section>
+
+      <section id="tab-notify" hidden>
+        <div class="panel">
+          <div class="panel-head"><h3>Send an official chat message</h3></div>
+          <div class="panel-body" style="padding:16px 18px">
+            <div class="field">
+              <label>Send to</label>
+              <select id="notify-mode"><option value="all">Everyone</option><option value="some">Specific usernames</option></select>
+            </div>
+            <div class="field" id="notify-targets-wrap" hidden>
+              <label>Usernames (comma-separated)</label>
+              <input id="notify-targets" placeholder="alice, bob, chi_ma">
+            </div>
+            <div class="field"><label>Message</label><textarea id="notify-message" placeholder="Sent from HwFar Official…"></textarea></div>
+            <button class="btn" style="width:auto" onclick="sendNotify()">Send message</button>
+            <div class="err" id="notify-result"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-push" hidden>
+        <div class="panel">
+          <div class="panel-head"><h3>Push a device notification</h3></div>
+          <div class="panel-body" style="padding:16px 18px">
+            <div class="field">
+              <label>Send to</label>
+              <select id="push-mode"><option value="all">Every device</option><option value="some">Specific usernames</option></select>
+            </div>
+            <div class="field" id="push-targets-wrap" hidden>
+              <label>Usernames (comma-separated)</label>
+              <input id="push-targets" placeholder="alice, bob">
+            </div>
+            <div class="field"><label>Title</label><input id="push-title" value="HwFar Official" placeholder="Notification title"></div>
+            <div class="field"><label>Body</label><textarea id="push-body" placeholder="Notification text…"></textarea></div>
+            <button class="btn" style="width:auto" onclick="sendPush()">Send push</button>
+            <div class="err" id="push-result"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-activity" hidden>
+        <div class="panel">
+          <div class="panel-head"><h3>Admin activity log</h3></div>
+          <div class="panel-body"><table><tbody id="activity-body"></tbody></table></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="convo-modal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="convo-title">Conversation</h3><button class="modal-close" onclick="closeModal('convo-modal')">×</button></div>
+    <div class="modal-body" id="convo-body"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="prompt-modal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="prompt-title">Action</h3><button class="modal-close" onclick="closeModal('prompt-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="field"><textarea id="prompt-input" placeholder="Reason / message…"></textarea></div>
+      <button class="btn" id="prompt-confirm">Confirm</button>
+      <div class="err" id="prompt-err"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let TOKEN = localStorage.getItem('hwfar_admin_token') || '';
+let socket = null;
+
+function api(path, opts) {
+  opts = opts || {};
+  opts.headers = Object.assign({'Content-Type': 'application/json'}, opts.headers || {}, TOKEN ? {'Authorization': 'Bearer ' + TOKEN} : {});
+  return fetch(path, opts).then(async r => {
+    let data = {};
+    try { data = await r.json(); } catch (e) {}
+    if (!r.ok) throw new Error(data.error || ('Request failed (' + r.status + ')'));
+    return data;
+  });
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function doLogin() {
+  const username = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value;
+  document.getElementById('login-err').textContent = '';
+  fetch('/admin/login', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({username, password})
+  }).then(async r => {
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Login failed');
+    TOKEN = data.access_token;
+    localStorage.setItem('hwfar_admin_token', TOKEN);
+    boot();
+  }).catch(e => { document.getElementById('login-err').textContent = e.message; });
+}
+
+function logout() {
+  TOKEN = '';
+  localStorage.removeItem('hwfar_admin_token');
+  if (socket) { socket.disconnect(); socket = null; }
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+function boot() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('show');
+  loadOverview();
+  loadReports('open');
+  loadUsers();
+  loadActivity();
+  connectLive();
+  setInterval(loadOverview, 15000);
+}
+
+// ---- tabs ----
+document.querySelectorAll('nav button[data-tab]').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+function switchTab(name) {
+  document.querySelectorAll('nav button[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('section[id^="tab-"]').forEach(s => s.hidden = (s.id !== 'tab-' + name));
+  document.getElementById('page-title').textContent = document.querySelector('nav button[data-tab="' + name + '"]').dataset.label;
+}
+
+// ---- overview ----
+function loadOverview() {
+  api('/admin/overview').then(s => {
+    const cards = [
+      ['Total users', s.total_users], ['Online now', s.online_now],
+      ['Banned', s.banned_users], ['Messages today', s.messages_today],
+      ['Open reports', s.open_reports], ['Warnings issued', s.warnings_issued],
+      ['Push devices', s.push_devices],
+    ];
+    document.getElementById('overview-cards').innerHTML = cards.map(c =>
+      `<div class="stat-card"><div class="num">${c[1]}</div><div class="lbl">${c[0]}</div></div>`).join('');
+    const badge = document.getElementById('bell-count');
+    const navBadge = document.getElementById('nav-reports-badge');
+    if (s.open_reports > 0) {
+      badge.hidden = false; badge.textContent = s.open_reports;
+      navBadge.hidden = false; navBadge.textContent = s.open_reports;
+    } else { badge.hidden = true; navBadge.hidden = true; }
+  }).catch(() => {});
+  api('/admin/activity').then(rows => {
+    document.getElementById('overview-activity').innerHTML = rows.slice(0, 8).map(rowToActivityTr).join('') ||
+      '<tr class="empty-row"><td>No admin activity yet.</td></tr>';
+  }).catch(() => {});
+}
+
+function rowToActivityTr(r) {
+  return `<tr><td><strong>${esc(r.action)}</strong></td><td>${esc(r.target || '—')}</td><td class="muted">${esc(r.detail || '')}</td><td style="color:var(--muted);white-space:nowrap">${esc(r.created_at)}</td></tr>`;
+}
+
+function loadActivity() {
+  api('/admin/activity').then(rows => {
+    document.getElementById('activity-body').innerHTML = rows.map(rowToActivityTr).join('') ||
+      '<tr class="empty-row"><td>Nothing logged yet.</td></tr>';
+  }).catch(() => {});
+}
+
+// ---- reports ----
+let currentReportStatus = 'open';
+document.getElementById('report-status-tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.pill-tab');
+  if (!btn) return;
+  document.querySelectorAll('#report-status-tabs .pill-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadReports(btn.dataset.status);
+});
+
+function loadReports(status) {
+  currentReportStatus = status;
+  api('/admin/reports?status=' + encodeURIComponent(status)).then(rows => {
+    document.getElementById('reports-body').innerHTML = rows.map(r => `
+      <tr>
+        <td><strong>${esc(r.reported)}</strong> ${r.reported_banned ? '<span class="badge danger">banned</span>' : ''}</td>
+        <td>${esc(r.reporter)}</td>
+        <td style="max-width:220px">${esc(r.reason || '—')}</td>
+        <td>${r.reported_total_reports}</td>
+        <td><span class="badge ${r.status === 'open' ? 'warn' : (r.status === 'actioned' ? 'danger' : '')}">${esc(r.status)}</span></td>
+        <td style="white-space:nowrap;color:var(--muted)">${esc(r.created_at)}</td>
+        <td>
+          <div class="row-actions">
+            <button class="btn ghost small" onclick="viewConvo('${jsq(r.reporter)}','${jsq(r.reported)}')">View chat</button>
+            ${r.status === 'open' ? `
+              <button class="btn ghost small" onclick="resolveReport(${r.id},'dismiss')">Dismiss</button>
+              <button class="btn ghost small" onclick="promptResolve(${r.id},'warn','${jsq(r.reported)}')">Warn</button>
+              <button class="btn danger small" onclick="promptResolve(${r.id},'ban','${jsq(r.reported)}')">Ban</button>
+            ` : ''}
+          </div>
+        </td>
+      </tr>
+    `).join('') || '<tr class="empty-row"><td colspan="7">No reports here.</td></tr>';
+  }).catch(() => {});
+}
+
+function resolveReport(id, action, note) {
+  api('/admin/reports/' + id + '/resolve', {method: 'POST', body: JSON.stringify({action, note: note || ''})})
+    .then(() => { toast('Report ' + action + 'd'); loadReports(currentReportStatus); loadOverview(); closeModal('prompt-modal'); })
+    .catch(e => { document.getElementById('prompt-err').textContent = e.message; toast(e.message); });
+}
+
+function promptResolve(id, action, username) {
+  openPrompt(action === 'ban' ? ('Ban ' + username) : ('Warn ' + username),
+    action === 'ban' ? 'Reason for the ban…' : 'Warning message to send to this user…',
+    note => resolveReport(id, action, note));
+}
+
+// ---- users ----
+let userSearchTimer = null;
+document.getElementById('user-search').addEventListener('input', () => {
+  clearTimeout(userSearchTimer);
+  userSearchTimer = setTimeout(loadUsers, 250);
+});
+
+function loadUsers() {
+  const q = document.getElementById('user-search').value.trim();
+  api('/admin/users?q=' + encodeURIComponent(q)).then(rows => {
+    document.getElementById('users-body').innerHTML = rows.map(u => `
+      <tr>
+        <td><strong>${esc(u.username)}</strong></td>
+        <td>${u.banned ? `<span class="badge danger" title="${esc(u.ban_reason||'')}">Banned</span>` : '<span class="badge on">Active</span>'}</td>
+        <td><span class="badge ${u.online ? 'on' : 'off'}">${u.online ? 'Online' : 'Offline'}</span></td>
+        <td>${u.report_count}</td>
+        <td>${u.warning_count}</td>
+        <td>
+          <div class="row-actions">
+            ${u.banned
+              ? `<button class="btn ghost small" onclick="unbanUser('${jsq(u.username)}')">Unban</button>`
+              : `<button class="btn danger small" onclick="promptBan('${jsq(u.username)}')">Ban</button>`}
+            <button class="btn ghost small" onclick="promptWarn('${jsq(u.username)}')">Warn</button>
+          </div>
+        </td>
+      </tr>
+    `).join('') || '<tr class="empty-row"><td colspan="6">No users match.</td></tr>';
+  }).catch(() => {});
+}
+
+function promptBan(username) {
+  openPrompt('Ban ' + username, 'Reason for the ban…', reason => {
+    api('/admin/users/' + encodeURIComponent(username) + '/ban', {method: 'POST', body: JSON.stringify({reason})})
+      .then(() => { toast(username + ' banned'); closeModal('prompt-modal'); loadUsers(); loadOverview(); })
+      .catch(e => { document.getElementById('prompt-err').textContent = e.message; });
+  });
+}
+function unbanUser(username) {
+  api('/admin/users/' + encodeURIComponent(username) + '/unban', {method: 'POST'})
+    .then(() => { toast(username + ' unbanned'); loadUsers(); loadOverview(); })
+    .catch(e => toast(e.message));
+}
+function promptWarn(username) {
+  openPrompt('Warn ' + username, 'Warning message — only this user will see it…', message => {
+    api('/admin/users/' + encodeURIComponent(username) + '/warn', {method: 'POST', body: JSON.stringify({message})})
+      .then(() => { toast('Warning sent to ' + username); closeModal('prompt-modal'); loadUsers(); loadOverview(); })
+      .catch(e => { document.getElementById('prompt-err').textContent = e.message; });
+  });
+}
+
+// ---- generic prompt modal ----
+let promptCallback = null;
+function openPrompt(title, placeholder, cb) {
+  document.getElementById('prompt-title').textContent = title;
+  document.getElementById('prompt-input').value = '';
+  document.getElementById('prompt-input').placeholder = placeholder;
+  document.getElementById('prompt-err').textContent = '';
+  promptCallback = cb;
+  document.getElementById('prompt-modal').classList.add('open');
+}
+document.getElementById('prompt-confirm').addEventListener('click', () => {
+  const val = document.getElementById('prompt-input').value.trim();
+  if (!val) { document.getElementById('prompt-err').textContent = 'This field is required.'; return; }
+  if (promptCallback) promptCallback(val);
+});
+
+// ---- conversation viewer ----
+function viewConvo(a, b) {
+  document.getElementById('convo-title').textContent = a + ' ↔ ' + b;
+  document.getElementById('convo-body').innerHTML = '<p class="muted">Loading…</p>';
+  document.getElementById('convo-modal').classList.add('open');
+  api('/admin/conversation?a=' + encodeURIComponent(a) + '&b=' + encodeURIComponent(b)).then(rows => {
+    document.getElementById('convo-body').innerHTML = rows.map(m => {
+      const gone = m.deleted_for_sender || m.deleted_for_receiver;
+      const content = m.type === 'text' ? esc(m.content) : `[${esc(m.type)}]`;
+      return `<div class="convo-msg ${m.from === a ? '' : 'mine'} ${gone ? 'gone' : ''}">
+        <div>${content}</div>
+        <div class="meta">${esc(m.from)} · ${esc(m.sent_at)}${gone ? ' · deleted on device' : ''}</div>
+      </div>`;
+    }).join('') || '<p class="muted">No messages between these two users.</p>';
+  }).catch(e => { document.getElementById('convo-body').innerHTML = '<p class="err">' + esc(e.message) + '</p>'; });
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ---- notify / push ----
+document.getElementById('notify-mode').addEventListener('change', e => {
+  document.getElementById('notify-targets-wrap').hidden = e.target.value !== 'some';
+});
+document.getElementById('push-mode').addEventListener('change', e => {
+  document.getElementById('push-targets-wrap').hidden = e.target.value !== 'some';
+});
+
+function sendNotify() {
+  const mode = document.getElementById('notify-mode').value;
+  const message = document.getElementById('notify-message').value.trim();
+  const resultEl = document.getElementById('notify-result');
+  resultEl.textContent = '';
+  if (!message) { resultEl.textContent = 'Write a message first.'; return; }
+  const targets = mode === 'all' ? 'all' : document.getElementById('notify-targets').value.split(',').map(s => s.trim()).filter(Boolean);
+  api('/admin/notify', {method: 'POST', body: JSON.stringify({targets, message})})
+    .then(r => { toast('Sent to ' + r.count + ' user(s)'); document.getElementById('notify-message').value = ''; })
+    .catch(e => { resultEl.textContent = e.message; });
+}
+
+function sendPush() {
+  const mode = document.getElementById('push-mode').value;
+  const title = document.getElementById('push-title').value.trim() || 'HwFar Official';
+  const body = document.getElementById('push-body').value.trim();
+  const resultEl = document.getElementById('push-result');
+  resultEl.textContent = '';
+  if (!body) { resultEl.textContent = 'Write a notification body first.'; return; }
+  const targets = mode === 'all' ? 'all' : document.getElementById('push-targets').value.split(',').map(s => s.trim()).filter(Boolean);
+  api('/admin/push', {method: 'POST', body: JSON.stringify({targets, title, body})})
+    .then(r => { toast('Pushed to ' + r.count + ' device owner(s)'); document.getElementById('push-body').value = ''; })
+    .catch(e => { resultEl.textContent = e.message; });
+}
+
+// ---- live feed ----
+function connectLive() {
+  api('/admin/feed').then(rows => {
+    document.getElementById('live-feed').innerHTML = rows.map(feedRowHtml).join('');
+  }).catch(() => {});
+  socket = io({transports: ['websocket', 'polling'], auth: {admin_token: TOKEN}});
+  socket.on('connect', () => {
+    socket.emit('admin_subscribe', {token: TOKEN});
+    document.getElementById('live-status').textContent = 'live';
+  });
+  socket.on('disconnect', () => { document.getElementById('live-status').textContent = 'reconnecting…'; });
+  socket.on('admin_new_message', m => prependFeed(feedRowHtml(m)));
+  socket.on('admin_new_report', r => {
+    prependFeed(`<div class="feed-item report"><span class="who">🚩 ${esc(r.reporter)} reported ${esc(r.reported)}</span><span class="txt">${esc(r.reason || '')}</span></div>`);
+    loadOverview();
+    if (currentReportStatus === 'open') loadReports('open');
+  });
+  socket.on('admin_user_banned', b => {
+    prependFeed(`<div class="feed-item banned"><span class="who">⛔ ${esc(b.username)} banned</span><span class="txt">${esc(b.reason || '')}</span></div>`);
+    loadUsers();
+  });
+}
+function feedRowHtml(m) {
+  const preview = m.type === 'text' ? m.content : ('[' + m.type + ']');
+  return `<div class="feed-item"><span class="who">${esc(m.sender)} → ${esc(m.receiver)}</span><span class="txt">${esc(preview)}</span><span class="when">${esc(m.sent_at || '')}</span></div>`;
+}
+function prependFeed(html) {
+  const feed = document.getElementById('live-feed');
+  feed.insertAdjacentHTML('afterbegin', html);
+  while (feed.children.length > 150) feed.removeChild(feed.lastChild);
+}
+
+// ---- utils ----
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function jsq(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
+
+if (TOKEN) boot(); else document.getElementById('login-screen').style.display = 'flex';
+</script>
+</body>
+</html>
